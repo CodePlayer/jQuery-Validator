@@ -8,28 +8,36 @@
  @Email: CodePlayer360@gmail.com
  @Licence: https://www.apache.org/licenses/LICENSE-2.0.html
 */
-!function ($) {
-	if(typeof jQuery === "undefined" || !($ instanceof jQuery)){
+!function ($, global) {
+	var console = global && global.console;
+	if(!jQuery || !($ instanceof jQuery)){
 		console && console.log("jQuery must be initialied before loading the Validator.");
 		return;
 	};
-	var V = function(){
+	var V = function(method){
 		if(!(this instanceof V)){
-			return new V();
+			return new V(method);
+		}
+		if( !method ) method = "v";
+		if( !$.fn[method] ){
+			var me = this;
+			$.fn[method] = function(eventType, rules){
+				return me.execute(this, eventType, rules);
+			};
 		}
 	};
-	var cache = V.cache = { };
+	 
+	cache = V.cache = { },
 	// 输出日志信息
-	var log = V.log = function(){
-		if(window.console){
+	log = V.log = function(){
+		if(console){
 			for(var i = 0; i < arguments.length; i++){
 				console.log(arguments[i]);
 			}
 			return true;
-		}	
-	};
-
-	V.fn = V.prototype = {
+		}
+	},
+	fn = V.fn = V.prototype = {
 		// 版本号
 		version: "1.3",
 
@@ -39,21 +47,21 @@
 		getValue: function($dom, context){
 			return $dom.val();
 		},
-
-		// 全局对象
-		global: { },
+		
+		// 严格模式:如果为false,则指定选择器没有对应元素时,直接忽略该元素的校验
+		strict: true,
 
 		// 将指定值包裹为jQuery对象
 		$: function( input ){
 			if(!input) return null;
 			if(input instanceof $){
-				return val;				
+				return input;
 			}else if($.type(input) === "string"){
 				var ch = input.charAt(0);
 				if(ch != "#"){
 					if(ch == "$") input = input.substr(1);
 					input = "[name='" + input + "']";
-				}				
+				}
 			}
 			return $(input);
 		},
@@ -62,14 +70,33 @@
 		defaultRules: {
 			required: true
 		},
+		// 处理规则的扩展(继承)
+		extendRule:function(clone, rule, defaultRule){
+			var result = clone ? $.extend( {}, rule), rule, _extend = rule.extend, _ext;
+			while(_extend){
+				_ext = this.getRule(_extend);
+				if(!_ext) throw "extended rule not found:" + _extend;
+				for(i in _ext){
+					if( !(i in result) ){
+						result[i] = _ext[i];
+					}
+				}
+				_extend = _ext.extend;
+			}
+			if(defaultRule){
+				for(i in defaultRule){
+					if( !(i in result) ){
+						result[i] = defaultRule[i];
+					}					
+				}
+			}
+			if(result.extend) delete result.extend;
+			return result;
+		},
+
 		// 对单个元素的校验规则进行处理
 		clipRule: function(rule, context){
-			var _extend = rule.extend, _ext;
-			while(_extend){
-				_ext = $.extend( { }, this.rules[rule.extend], _ext);
-				_extend = _ext ? _ext.extend : null;
-			}
-			return $.extend( { }, this.defaultRules, _ext, rule );
+			return this.extendRule(true, rule, this.defaultRules);
 		}
 		 // 元素值预处理器，必须返回值
 		pre: {
@@ -96,7 +123,6 @@
 				return value;
 			}
 		}
-
  		// 格式化器：根据指定的表达式进行格式化，并返回格式化后的内容,格式化失败，返回false或Error对象
 		formatter: {
 			// 数字格式化器：返回数字
@@ -142,7 +168,7 @@
 					}
 					cache[context.rule.format] = regex;
 				}
-				V.debug && log( "number regex:" ) && log( regex );
+				V.debug && log( "number formatter [" + expr + "] regexp:", regex );
 				if(regex.test(value)){
 					return parseFloat(value);
 				}
@@ -165,7 +191,7 @@
 					}
 					cache[context.rule.format] = pattern;
 				}
-				V.debug && log( "date pattern:" ) && log( pattern );
+				V.debug && log( "date pattern:", pattern );
 				var parts = {} , chars = value.split("");
 				for(var i in pattern){
 					part = pattern[i];
@@ -196,7 +222,7 @@
 					}
 					cache[context.rule.format] = pattern;
 				}
-				V.debug && log( "idcard pattern:" ) && log( pattern );
+				V.debug && log( "idcard pattern:", pattern );
 				if(!value || (pattern[0] == "?" && value.length != 15 && value.length != 18) || value.length != pattern[0]) return false;
 				var isNew = value.length == 18;
 				if(isNew){ // 18位身份证校验位校验
@@ -228,23 +254,22 @@
 				return context.birthday = date;
 			}
 		},
-
 		// 校验器
 		validator: {
 			// 非空校验器
 			required: function(value, expr, context){
-				var $dom = context.$dom;
+				var $dom = context.$dom, basedLength;
 				if($dom && $dom.length){
 					// 如果是复选框或单选框，需要特殊处理
-					var e = $dom[0], nodeName = e.nodeName;
-					if((e.type == "checkbox" || e.type == "radio") && (nodeName == "INPUT" || nodeName == "input")){
+					if($dom[0].checked != null){
+						basedLength = true;
 						// 复选框、单选框则判断是否选中
 						context.actual = value = $dom.filter(":checked").length;
 					}
 				}
 				if( !value ){
 					if( context.rule.required ){
-						this.sendError("", value, "required", context);
+						this.sendError(basedLength ? "checked":"", value, "required", context);
 						return false;
 					}
 					context._stop = true;
@@ -259,9 +284,8 @@
 						this.sendError(expr, value, result[1], context);
 					}
 					return value;
-				}else{
-					throw "Unsupported format validator:" + result[0];
 				}
+				throw "Unsupported format validator:" + result[0];
 			},
 			// 正则表达式或自定义函数文本校验器
 			text: function(value, expr, context){
@@ -320,9 +344,9 @@
 			},
 			// 相等校验器
 			equalsTo: function(value, expr, context){
-				var $dom = $("[name='" + expr + "']"), val = $dom.val();
+				var $dom = this.$(expr), val = this.getValue($dom, context);
 				if(value != val){
-					V.util.pushDomContext(context, expr, $dom);
+					V.util.pushDomContext(null, $dom, context);
 					this.sendError("", value, val, context);
 					return false;
 				}
@@ -341,7 +365,7 @@
 								hook[name] = new Date();
 							}
 						}else {
-							var selector = $2 == "#" ? "#" + name : "[name='" + name + "']", $dom = $(selector), domValue = $dom.val();
+							var selector = $2 == "#" ? "#" + name : "[name='" + name + "']", $dom = $(selector), domValue = me.getValue($dom, context);
 							if(domValue != null){
 								if(s.propagation){ // 表达式中的其他表单字段和当前字段采用相同的校验规则(compare规则除外)									
 									var copy = $.extend({}, s);
@@ -350,7 +374,7 @@
 										isOK = false;
 									}
 								}
-								V.util.pushDomContext(context, name, $dom);								
+								V.util.pushDomContext(name, $dom, context);								
 								if(isOK){
 									if(s.format){
 										result = result || V.util.parseFormat( s.format );
@@ -368,37 +392,37 @@
 				if(!isOK){
 					return false;
 				}
-				V.debug && log( "compare expression:" + expression ) && log( "compare [this] hook:" ) && log( hook );
+				V.debug && log( "compare validator pattern:" + expression, "compare validator [this] hook:", hook );
 				result = new Function("return (" + expression + ")").call(hook);
 				if(result === false){
-					this.sendError("pattern", value, expr, context);
+					this.sendError("", value, expr, context);
 					return false;
 				}
 			},
 			// 手机号码校验器
 			cellphone: function(value, expr, context){
 				cache.__cellhone || ( cache.__cellhone = /^1\d{10}$/ );
-				V.debug && log( "cellphone pattern:" ) && log( cache.__cellhone );
+				V.debug && log( "cellphone regexp:", cache.__cellhone );
 				if( !cache.__cellhone.test(value) ){
-					this.sendError("pattern", value, cache.__cellhone, context);
+					this.sendError("", value, cache.__cellhone, context);
 					return false;
 				}
 			},
 			// 邮箱格式校验器
 			email: function(value, expr, context){
 				cache.__email || ( cache.__email = /^[\w._-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/ );
-				V.debug && log( "email pattern:" ) && log( cache.__email );
+				V.debug && log( "email regexp:", cache.__email );
 				if( !cache.__email.test(value) ){
-					this.sendError("pattern", value, cache.__email, context);
+					this.sendError("", value, cache.__email, context);
 					return false;
 				}
 			},
 			// 文件格式校验器:"jpeg|png|txt|gif"
 			file: function(value, expr, context){
-				var filePattern = V.cache[expr] || (V.cache[expr] = new RegExp("\\.(" + expr + ")$", "i"));
-				V.debug && log( "file pattern:" ) && log( filePattern );
+				var filePattern = cache[expr] || (cache[expr] = new RegExp("\\.(" + expr + ")$", "i"));
+				V.debug && log( "file regexp:", filePattern );
 				if( !filePattern.test(value) ){
-					this.sendError("pattern", value, expr, context);
+					this.sendError("", value, expr, context);
 					return false;
 				}
 			},
@@ -445,13 +469,14 @@
 				return false;
 			}
 		},
-		
+		// 全局规则
 		rules: { },
-		
+		// 定义规则
 		define: function(name, rule, global){
+			global ||  (global = !(this instanceof V));
 			if(typeof name == "object"){
 				for(var i in name){
-					this.define(i, name[i]);
+					fn.define.call(this, i, name[i], global);
 				}
 				return;
 			}
@@ -460,37 +485,35 @@
 				obj[rule] = rule;
 				rule = obj;
 			}
-			while(rule.extend){
-				var ext = this.rules[rule.extend];
-				delete rule.extend;
-				if(ext){
-					rule = $.extend({}, ext, rule);
-				}			
-			}			
-			if(global || !(this instanceof V)){
-				V.fn.rules[name] = rule; 
-			}else{
-				this.rules[name] = rule;
-			}
+			rule = this.extendRule(false, rule);
+			var rules = global ? fn.rules : this.rules;
+			if(!global && rules === fn.rules)
+				this.rules = rules = { };
+			rules[name] = rule; 
 		},
-		
+		// 获取指定名称对应的校验规则
+		getRule(name){
+			return this.rules[name] || fn.rules[name];
+		},
 		 // 执行单个校验
 		validate: function(value, rule, event){
+			var me = this, context;
 			if( typeof rule === "string" ){
-				rule = this.rules[rule];
+				rule = me.getRule(rule);
 				if( !rule ) throw "validate rule not found:" + rule;
 			}
-			var context = V.context = { origin: rule };
-			rule = context.rule = this.clipRule( rule );
+			context = V.context = { origin: rule };
+			rule = context.rule = me.clipRule( rule );
 			V.debug && log( "current validate context:", context );
 			if( value instanceof $ ){
+				if(!value.length && !this.strict) return true; // 非严格模式,直接跳过校验
 				context.$dom = value;
-				value = value.val();
+				value = me.getValue(value, context);
 			}
 			context.value = value;
 			// 如果设置了条件预过滤器，只有在匹配条件时才执行后续校验
 			if( rule.preMatch ){
-				if(rule.preMatch.call(this, value, context) === false)
+				if(rule.preMatch.call(me, value, context) === false)
 					return true;
 				delete rule.preMatch;
 			}
@@ -499,16 +522,18 @@
 			}
 			// 如果设置了预处理
 			if( rule.pre ){
-				var pres = rule.pre.split(",");
-				for(var i in pres){
-					value = this.pre[pres[i]].call(this, value, context);
+				var preNames = me.pre.trimAll(rule.pre).split(",");
+				for(var i in preNames){
+					value = me.pre[preNames[i]].call(me, value, context);					
 				}
 				context.value = value;
 				delete rule.pre;
 			}
+			if(value == null) context.value = value = ""; // 确保校验器接收到的不会为null或undefined
 			// 如果设置了非空验证
 			if( rule.required != null ){
-				if( this.validator.required.call(this, value, "", context) === false){
+				context.validator = "required";
+				if( me.validator.required.call(me, value, "", context) === false){
 					return false;
 				}
 				if( context._stop ) return true;
@@ -516,16 +541,18 @@
 			}
 			// 如果设置了格式验证
 			if( rule.format ){
-				value = this.validator.format.call(this, value, rule.format, context);
+				context.validator = "format";
+				value = me.validator.format.call(me, value, rule.format, context);
 				if( value === false ) return false;
 				if( context._stop ) return true;
 				delete rule.format;
 			}
 			// 循环执行验证器，非验证器属性就跳过
 			for(var i in rule){
-				var validator = this.validator[i];
+				var validator = me.validator[i];
 				if( validator ){
-					if( validator.call(this, value, rule[i], context) === false ){
+					context.validator = i;
+					if( validator.call(me, value, rule[i], context) === false ){
 						return false;
 					}
 					if( context._stop ) return true;
@@ -533,17 +560,17 @@
 			}
 			return true;
 		},
-
-		bind: function($doms, eventType, rules, event){
+		// 对多个元素或值执行校验,或者进行事件监听
+		execute: function($doms, eventType, rules, event){
+			var me = this;
 			if(!($doms instanceof $)){
-				$doms = $($doms);
+				$doms = me.$($doms);
 			}
 			if( !$doms.length ) return false;
 
 			if( rules == null){
 				rules = eventType, eventType = null;
-			}
-			var me = this;
+			}			
 			if(eventType){ // 事件监听
 				$doms.on(eventType, function(e){
 					var isSubmit = e.type == "submit", element = isSubmit ? this : e.target, rule = isSubmit ? rules : rules[element.name];
@@ -569,31 +596,31 @@
 					}
 				}
 			});
-			if( this.callback && $.isFunction(this.callback) ){
-				return this.callback.call($doms, result, rules, event) !== false;
+			if( me.callback && $.isFunction(me.callback) ){
+				return me.callback.call($doms, result, rules, event) !== false;
 			}
 			return result;
 		},
 		// 发送错误信息
 		sendError: function(trigger, actual, expected, context){
-			context.trigger = trigger;
+			context.trigger = trigger || context.validator;
 			context.actual = actual;
 			context.expected = expected;
-			if(context.message !== false){
-				var msg = context.message || this.getMessage(context);
-				if(msg !== false) this.renderError(this.$( context.rule.errorFocus ) || context.$dom, msg, context);
-			}
-			
+			var msg = this.getMessage(context);
+			if(msg !== false){				
+				var $target = this.$( context.rule.errorFocus ) || context.$dom;
+				var renderError = $.isFunction(context.rule.renderError) ? context.rule.renderError : this.renderError;
+				renderError.call(this, this.$( context.rule.errorFocus ) || context.$dom, msg, context);
+			}			
 		},
-		
 		 // 渲染错误
 		renderError: function($target, message, context){
 			$target && $target.tips && $target.tips(message) || alert(message);
-			var event = rule.event;
-			if( !event || event.type != "focusout" && event.type != "blur")
+			var e = rule.event;
+			if( !e || e.type != "focusout" && e.type != "blur")
 				$target && $target.first().focus();
 		},
-		
+		// 全局消息配置
 		messages: {
 			"required": "{label}不能为空!",
 			"equalsTo": "{label}必须与{#0}输入一致!",
@@ -610,48 +637,80 @@
 			"format.number": "{label}必须是有效的整数!",
 			"format.number/money": "{label}必须是整数或最多保留两位的小数!",
 			"format.number/double": "{label}必须是有效的整数或小数!",
-			"format.date": "{label}必须是有效的日期!",
-			"pattern": "{label}的格式不正确!",
-			"regexp": "{label}的格式不正确!",
-			"function": "{label}的格式不正确!",
-			"file": "{label}的文件格式不正确，必须为{expected}等格式!"
+			"format.date": "{label}必须是有效的日期!",			
+			"file": "{label}的格式不正确，必须为{expected}等格式!"
+			"default":"{label}的格式不正确!"
 		},
-		
-		getMessage: function(s){
-			var message = typeof s.message === "object" ? ( s.message[s.validator + "." + s.trigger] || s.message[s.validator] || s.message[s.trigger] ) : s.message;
-			if( !message ){
-				message = this.messages[s.validator + "." + s.trigger] || this.messages[s.validator] || this.messages[s.trigger];
-			}
-			if( message ){
-				this.devMode && console && console.log( s );
-				message = V.util.parseMessage(message, s, this);
+		setMessage(name, msg, global){
+			global ||  (global = !(this instanceof V));
+			var msgs  = global ? fn.messages : this.messages;
+			if(!global && msgs == fn.messages) this.messages = msgs = { };
+			if(typeof name == "object"){
+				for(i in name){
+					msgs[i] = name[i];
+				}
 			}else{
-				message = this.messages["default"] || "您输入的格式不正确!";
+				msgs[name] = msg;
 			}
-			return message;
+		},
+		// 按照优先级依次解析并获取对应的message
+		getMessage: function(context){
+			var bundles = [context.message, context.rule.message, this.messages, fn.messages], bundle, msg;
+			for(var i in bundles){
+				msg = bundle = bundles[i];
+				if(bundle === false){
+					return msg;
+				}
+				if(bundle != null){
+					if(typeof bundle === "object"){
+						msg = bundle[context.validator + "." + context.trigger];
+						msg == null && ( (msg = bundle[context.validator]) == null ) && (msg = bundle[context.trigger]);
+					}
+					if(msg === false){
+						return msg;
+					}else if(msg != null){
+						break;
+					}
+				}
+			}
+			if(msg && $.isFunction(msg)){
+				msg = msg.call(null, context);
+			}
+			if(msg !== false){
+				if(!msg) msg = this.messages["default"] || fn.messages["default"];
+				msg && msg = V.util.parseMessage(msg, context, this);
+			}
+			return msg;
 		},
 		
 		labels: { },
-		
-		setLabel: function(){
-			function(name, label){
-				if(typeof name == "object"){
-					$.extend(this.labels, name);
-				}else{
-					this.labels[name] = label;
+
+		setLabel: function(name, label, global){
+			global ||  (global = !(this instanceof V));
+			var labels  = global ? fn.labels : this.labels;
+			if(!global && labels == fn.labels) this.labels = labels = { };
+			if(typeof name == "object"){
+				for(i in name){
+					labels[i] = name[i];
 				}
+			}else{
+				labels[name] = label;
 			}
 		},
 
-		getLabel: function(){
-			if( $dom && $dom.length ){
-				var name = $dom.prop("name"), label = name && this.labels[name] || $dom.attr("label") || $dom.prev("label").text();
-				if( label ) return label.charAt(0) == "*" ? label.substr(1) : label;
+		getLabel: function(name, $dom, context){
+			if(!name) name = $dom.prop("name");
+			if(name != null){
+				var label = this.labels[name] || fn.labels[name];
+				if(label == null && $dom && $dom.length ){
+					label = $dom.attr("label") || $dom.prev("label").text();
+					if(label) return label;
+				}
 			}
 			return "";
 		}
-		
 	};
+	// 工具函数
 	V.util = {
 		// 解析formatter的format，形如:"formatterName[/expression]"
 		parseFormat: function(format){
@@ -673,39 +732,39 @@
 					}
 					cache[pattern] = result;
 				}else{
-					throw "Unexpected pattern:" + pattern;
+					throw "Unexpected interval pattern:" + pattern;
 				}
 			}
 			return cache[pattern];
 		},
 		// 解析错误消息
-		parseMessage: function(message, me){
+		parseMessage: function(message, context, me){
+			var $doms = context.$relatedDoms;
 			return message.replace(cache.__message || ( cache.__message = /\{([^}]+)\}/g ), function($0, $1){
 				var char0 = $1.charAt(0), result;
 				if(char0 == "#" || char0 == "$"){
 					var key = $1.substr(1);
-					if(me.$relatedDoms && me.$relatedDoms[key]){
-						result = me.getLabel( me.$relatedDoms[key] );
+					if($doms && $doms[key]){
+						result = me.getLabel( null, $doms[key], context );
 					}else{
-						result = me.getLabel( $( char0 == "#" ? "#" + key : "[name='" + key + "']" ) );
+						result = me.getLabel( null, $( char0 == "#" ? "#" + key : "[name='" + key + "']" ), context );
 					}
 				}else{
-					result = me[$1];
+					result = context[$1];
 				}
 				if( !result ) result = "";
 				return result;
 			});
 		},
 		// 将关联的DOM放入上下文的$relatedDoms中
-		pushDomContext: function(context, name, $dom){
-			var array = context.$relatedDoms || ( context.$relatedDoms = [] );
+		pushDomContext: function(name, $dom, context){
+			var doms = context.$relatedDoms || ( context.$relatedDoms = [] );
 			if( !name ) name = $dom.prop("name");
-			array.push($dom);
-			if(name) array[name] = $dom;
+			doms.push($dom);
+			if(name) doms[name] = $dom;
 		}
 	};
-	
-	V.fn.define({
+	fn.define({
 		"username": {
 			pre: "trimAll,lower,flush",
 			text: /^[a-z][a-z0-9_]{5,15}$/i,
@@ -747,4 +806,50 @@
 		},
 		"file": "jpg|jpeg|gif|png|bmp"
 	});
+	if(global ||  (global = (typeof window !== "undefined") ? window : this)){
+		global.V = V;
+	}
+}(jQuery, window);
+
+// 
+function($){	
+	V.fn.bindAttr = function(options){
+		var opts = $.extend({
+			container: "form", // 元素容器,并对此进行监听
+			eventType: "submit", // 监听事件		
+			attr:"v", // 指定设置规则的属性
+			nameAsValue: true, // 如果 attr指定的属性值为空,是否可使用name属性值作为其属性值
+			cache: true // 是否允许缓存,如果规则不会随时变动,建议开启缓存以提高重复校验的性能			
+		}, options),
+		me = this,
+		$p = $(opts.container),
+		$matches = $p.find("[" + opts.attr +"]"),
+		validate = function(selector, event){
+			var $doms = selector ? $(selector) : opts.cache ? $matches : $p.find("[" + opts.attr +"]"), total = 0, success = 0, rules = { };
+			$doms.each(function(){				
+				var $me = $(this), name = $me.prop("name") || $me.attr("name"), ruleName = $me.attr(opts.attr) || opts.nameAsValue && name);
+				if(!ruleName){
+					throw "inlivad attribute [" + opts.attr + "]:" + $me;
+				}
+				if(rules[name]) return;
+				if(this.checked != null) // 对复选框/单选框进行特殊处理
+					$me = $p.find("[name='" + name + "']");
+				rules[name] = ruleName;
+				total++;
+				if( me.validate($me, ruleName, event) === false){
+					return false;
+				}
+				success++;
+			});
+			var result = total == success;
+			if(me.callback && $.isFunction(me.callback) ){
+				return me.callback.call($doms, result, rules, event) !== false;
+			}
+			return result;
+		};
+		$p.on(eventType, function(e){
+			return validate(null, e);
+		});
+		return { validate: validate }; // 返回包含校验函数的对象,便于手动调用		
+	};	
 }(jQuery);
