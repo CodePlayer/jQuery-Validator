@@ -1,4 +1,4 @@
-//**************************************
+/**************************************
  @Name: jQuery-Validator 基于jQuery的表单验证框架
  @Version: 1.3.0 beta
  @Author: Ready
@@ -10,7 +10,7 @@
 */
 !function ($, global) {
 	var console = global && global.console;
-	if(!jQuery || !($ instanceof jQuery)){
+	if(typeof jQuery === "undefined" || $ !== jQuery){
 		console && console.log("jQuery must be initialied before loading the Validator.");
 		return;
 	};
@@ -25,8 +25,7 @@
 				return me.execute(this, eventType, rules);
 			};
 		}
-	};
-	 
+	},	 
 	cache = V.cache = { },
 	// 输出日志信息
 	log = V.log = function(){
@@ -52,7 +51,7 @@
 		strict: true,
 
 		// 将指定值包裹为jQuery对象
-		$: function( input ){
+		$: function( input, $context ){
 			if(!input) return null;
 			if(input instanceof $){
 				return input;
@@ -63,7 +62,7 @@
 					input = "[name='" + input + "']";
 				}
 			}
-			return $(input);
+			return $(input, $context);
 		},
 
 		// 默认规则
@@ -72,7 +71,7 @@
 		},
 		// 处理规则的扩展(继承)
 		extendRule:function(clone, rule, defaultRule){
-			var result = clone ? $.extend( {}, rule), rule, _extend = rule.extend, _ext;
+			var result = clone ? $.extend( {}, rule) : rule, _extend = rule.extend, _ext;
 			while(_extend){
 				_ext = this.getRule(_extend);
 				if(!_ext) throw "extended rule not found:" + _extend;
@@ -97,7 +96,7 @@
 		// 对单个元素的校验规则进行处理
 		clipRule: function(rule, context){
 			return this.extendRule(true, rule, this.defaultRules);
-		}
+		},
 		 // 元素值预处理器，必须返回值
 		pre: {
 			// 去除两侧的空白字符
@@ -122,7 +121,7 @@
 				context.$dom && context.$dom.val(value);
 				return value;
 			}
-		}
+		},
  		// 格式化器：根据指定的表达式进行格式化，并返回格式化后的内容,格式化失败，返回false或Error对象
 		formatter: {
 			// 数字格式化器：返回数字
@@ -261,7 +260,8 @@
 				var $dom = context.$dom, basedLength;
 				if($dom && $dom.length){
 					// 如果是复选框或单选框，需要特殊处理
-					if($dom[0].checked != null){
+					var e = $dom[0], nodeName = e.nodeName;
+					if(e.checked != null && (e.type == "checkbox" || e.type == "radio")){
 						basedLength = true;
 						// 复选框、单选框则判断是否选中
 						context.actual = value = $dom.filter(":checked").length;
@@ -586,7 +586,7 @@
 				var $me = $(this), tagName = this.nodeName;
 				if( tagName == "FORM" || tagName == "form" ){
 					for(var i in rules){
-						if( me.validate($me.find("[name='" + i + "']"), rules[i], event) === false ){
+						if( me.validate(me.$(i, $me), rules[i], event) === false ){
 							return (result = false);
 						}
 					}
@@ -606,9 +606,9 @@
 			context.trigger = trigger || context.validator;
 			context.actual = actual;
 			context.expected = expected;
+			context.label = this.getLabel(context.name, context.$dom, context);
 			var msg = this.getMessage(context);
 			if(msg !== false){				
-				var $target = this.$( context.rule.errorFocus ) || context.$dom;
 				var renderError = $.isFunction(context.rule.renderError) ? context.rule.renderError : this.renderError;
 				renderError.call(this, this.$( context.rule.errorFocus ) || context.$dom, msg, context);
 			}			
@@ -616,13 +616,14 @@
 		 // 渲染错误
 		renderError: function($target, message, context){
 			$target && $target.tips && $target.tips(message) || alert(message);
-			var e = rule.event;
+			var e = context.rule.event;
 			if( !e || e.type != "focusout" && e.type != "blur")
 				$target && $target.first().focus();
 		},
 		// 全局消息配置
 		messages: {
 			"required": "{label}不能为空!",
+			"required.checked": "请先选择{label}!",
 			"equalsTo": "{label}必须与{#0}输入一致!",
 			"==": "{label}必须等于{expected}!",
 			">=": "{label}必须大于或等于{expected}!",
@@ -638,7 +639,7 @@
 			"format.number/money": "{label}必须是整数或最多保留两位的小数!",
 			"format.number/double": "{label}必须是有效的整数或小数!",
 			"format.date": "{label}必须是有效的日期!",			
-			"file": "{label}的格式不正确，必须为{expected}等格式!"
+			"file": "{label}的格式不正确，必须为{expected}等格式!",
 			"default":"{label}的格式不正确!"
 		},
 		setMessage(name, msg, global){
@@ -678,7 +679,7 @@
 			}
 			if(msg !== false){
 				if(!msg) msg = this.messages["default"] || fn.messages["default"];
-				msg && msg = V.util.parseMessage(msg, context, this);
+				msg && (msg = V.util.parseMessage(msg, context, this));
 			}
 			return msg;
 		},
@@ -812,7 +813,7 @@
 }(jQuery, window);
 
 // 
-function($){	
+!function($){
 	V.fn.bindAttr = function(options){
 		var opts = $.extend({
 			container: "form", // 元素容器,并对此进行监听
@@ -827,7 +828,7 @@ function($){
 		validate = function(selector, event){
 			var $doms = selector ? $(selector) : opts.cache ? $matches : $p.find("[" + opts.attr +"]"), total = 0, success = 0, rules = { };
 			$doms.each(function(){				
-				var $me = $(this), name = $me.prop("name") || $me.attr("name"), ruleName = $me.attr(opts.attr) || opts.nameAsValue && name);
+				var $me = $(this), name = $me.prop("name") || $me.attr("name"), ruleName = $me.attr(opts.attr) || opts.nameAsValue && name;
 				if(!ruleName){
 					throw "inlivad attribute [" + opts.attr + "]:" + $me;
 				}
