@@ -491,7 +491,7 @@
 			rules[name] = rule;
 		},
 		// 获取指定名称对应的校验规则
-		getRule(name){
+		getRule: function(name){
 			return this.rules[name] || fn.rules[name];
 		},
 		 // 执行单个校验
@@ -681,7 +681,7 @@
 			"file": "{label}的格式不正确，必须为{expected}等格式!",
 			"default":"{label}的格式不正确!"
 		},
-		setMessage(name, msg, global){
+		setMessage: function(name, msg, global){
 			global ||  (global = !(this instanceof V));
 			var msgs  = global ? fn.messages : this.messages;
 			if(!global && msgs == fn.messages) this.messages = msgs = { };
