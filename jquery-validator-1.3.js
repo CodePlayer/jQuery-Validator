@@ -611,8 +611,8 @@
 			}, options), me = this, $p = $(opts.container), $matches = $p.find("[" + opts.attr +"]"),
 			validate = function(selector, event){
 				var $doms = selector ? $(selector) : opts.cache ? $matches : $p.find("[" + opts.attr +"]"), result = true, rules = { };
-				$doms.each(function(){					
-					var $me = $(this), name = $me.prop("name") || $me.attr("name"), ruleName = $me.attr(opts.attr) || opts.nameAsValue && name;
+				$doms.each(function(){
+					var $me = $(this), name = this.name || $me.attr("name"), ruleName = $me.attr(opts.attr) || opts.nameAsValue && name;
 					V.debug && log("current element [" + ruleName + "] :", $me );
 					if(!ruleName){
 						throw "invalid attribute [" + opts.attr + "]:" + $me;
@@ -630,7 +630,7 @@
 				}
 				return result;
 			};
-			$p.bind(opts.eventType, function(e){
+			opts.eventType && $p.bind(opts.eventType, function(e){
 				return validate(null, e);
 			});
 			return { validate: validate }; // 返回包含校验函数的对象,便于手动调用
