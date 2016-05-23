@@ -25,8 +25,7 @@
 				return me.execute(this, eventType, rules);
 			};
 		}
-	},	 
-	cache = V.cache = { },
+	}, cache = V.cache = { },
 	// 输出日志信息
 	log = V.log = function(){
 		if(console){
@@ -46,7 +45,7 @@
 		getValue: function($dom, context){
 			return $dom.val();
 		},
-		
+
 		// 严格模式:如果为false,则指定选择器没有对应元素时,直接忽略该元素的校验
 		strict: true,
 
@@ -86,7 +85,7 @@
 				for(i in defaultRule){
 					if( !(i in result) ){
 						result[i] = defaultRule[i];
-					}					
+					}
 				}
 			}
 			if(result.extend) delete result.extend;
@@ -367,14 +366,14 @@
 						}else {
 							var selector = $2 == "#" ? "#" + name : "[name='" + name + "']", $dom = $(selector), domValue = me.getValue($dom, context);
 							if(domValue != null){
-								if(s.propagation){ // 表达式中的其他表单字段和当前字段采用相同的校验规则(compare规则除外)									
+								if(s.propagation){ // 表达式中的其他表单字段和当前字段采用相同的校验规则(compare规则除外)
 									var copy = $.extend({}, s);
 									delete copy.compare;
 									if( me.validate($dom, copy) === false ){
 										isOK = false;
 									}
 								}
-								V.util.pushDomContext(name, $dom, context);								
+								V.util.pushDomContext(name, $dom, context);
 								if(isOK){
 									if(s.format){
 										result = result || V.util.parseFormat( s.format );
@@ -489,7 +488,7 @@
 			var rules = global ? fn.rules : this.rules;
 			if(!global && rules === fn.rules)
 				this.rules = rules = { };
-			rules[name] = rule; 
+			rules[name] = rule;
 		},
 		// 获取指定名称对应的校验规则
 		getRule(name){
@@ -524,7 +523,7 @@
 			if( rule.pre ){
 				var preNames = me.pre.trimAll(rule.pre).split(",");
 				for(var i in preNames){
-					value = me.pre[preNames[i]].call(me, value, context);					
+					value = me.pre[preNames[i]].call(me, value, context);
 				}
 				context.value = value;
 				delete rule.pre;
@@ -560,22 +559,22 @@
 			}
 			return true;
 		},
-		// 对多个元素或值执行校验,或者进行事件监听
-		execute: function($doms, eventType, rules, event){
+		// 对多个元素的值一并执行校验，values 可以为数组、普通对象以及jQuery对象，rules必须是对象
+		execute: function($doms, eventType, rules){
 			var me = this;
-			if(!($doms instanceof $)){
-				$doms = me.$($doms);
-			}
-			if( !$doms.length ) return false;
-
-			if( rules == null){
+			if(rules == null){
 				rules = eventType, eventType = null;
-			}			
-			if(eventType){ // 事件监听
-				$doms.on(eventType, function(e){
+			}
+			if(!($doms instanceof $)){
+				$doms = $($doms);
+			}
+			if( !$doms.length ) return !this.strict;
+
+			if(typeof eventType === "string"){ // 进行事件绑定
+				$doms.bind(eventType, function(e){
 					var isSubmit = e.type == "submit", element = isSubmit ? this : e.target, rule = isSubmit ? rules : rules[element.name];
 					if( rule ){
-						return me.execute(element, null, rule, e);
+						return me.execute(element, e, rule);
 					}
 					return false;
 				});
@@ -586,21 +585,57 @@
 				var $me = $(this), tagName = this.nodeName;
 				if( tagName == "FORM" || tagName == "form" ){
 					for(var i in rules){
-						if( me.validate(me.$(i, $me), rules[i], event) === false ){
+						if( me.validate(me.$(i, $me), eventType, rules[i]) === false ){
 							return (result = false);
 						}
 					}
 				}else{
-					if( me.validate($me, rules, event) === false){
+					if( me.validate($me, eventType, rules) === false){
 						return (result = false);
 					}
 				}
 			});
 			if( me.callback && $.isFunction(me.callback) ){
-				return me.callback.call($doms, result, rules, event) !== false;
+				return me.callback.call($doms, result, rules, eventType) !== false;
 			}
-			return result;
+			return result;		
+		},		
+
+		bindAttr: function(options){
+			var opts = $.extend({
+				container: "form", // 元素容器,并对此进行监听
+				eventType: "submit", // 监听事件
+				attr:"v", // 指定设置规则的属性
+				nameAsValue: true, // 如果 attr指定的属性值为空,是否可使用name属性值作为其属性值
+				cache: true // 是否允许缓存,如果规则不会随时变动,建议开启缓存以提高重复校验的性能
+			}, options), me = this, $p = $(opts.container), $matches = $p.find("[" + opts.attr +"]"),
+			validate = function(selector, event){
+				var $doms = selector ? $(selector) : opts.cache ? $matches : $p.find("[" + opts.attr +"]"), result = true, rules = { };
+				$doms.each(function(){					
+					var $me = $(this), name = $me.prop("name") || $me.attr("name"), ruleName = $me.attr(opts.attr) || opts.nameAsValue && name;
+					V.debug && log("current element [" + ruleName + "] :", $me );
+					if(!ruleName){
+						throw "invalid attribute [" + opts.attr + "]:" + $me;
+					}
+					if(rules[name]) return;
+					if(this.checked != null && (this.type == "radio" || this.type == "checkbox")) // 对复选框/单选框进行特殊处理
+						$me = $p.find("[name='" + name + "']");
+					rules[name] = ruleName;
+					if( me.validate($me, ruleName, event) === false){
+						return (result = false);
+					}
+				});
+				if(me.callback && $.isFunction(me.callback) ){
+					return me.callback.call($doms, result, rules, event) !== false;
+				}
+				return result;
+			};
+			$p.bind(opts.eventType, function(e){
+				return validate(null, e);
+			});
+			return { validate: validate }; // 返回包含校验函数的对象,便于手动调用
 		},
+		
 		// 发送错误信息
 		sendError: function(trigger, actual, expected, context){
 			context.trigger = trigger || context.validator;
@@ -608,15 +643,19 @@
 			context.expected = expected;
 			context.label = this.getLabel(context.name, context.$dom, context);
 			var msg = this.getMessage(context);
-			if(msg !== false){				
+			if(msg !== false){
 				var renderError = $.isFunction(context.rule.renderError) ? context.rule.renderError : this.renderError;
-				renderError.call(this, this.$( context.rule.errorFocus ) || context.$dom, msg, context);
-			}			
+				renderError.call(this, msg, this.$( context.rule.errorFocus ) || context.$dom, context);
+			}
 		},
 		 // 渲染错误
-		renderError: function($target, message, context){
-			$target && $target.tips && $target.tips(message) || alert(message);
-			var e = context.rule.event;
+		renderError: function(message, $target, context){
+			if($target && $.isFunction($target.tips)){
+				$target.tips(message);
+			}else {
+				alert(message);
+			}
+			var e = context.event;
 			if( !e || e.type != "focusout" && e.type != "blur")
 				$target && $target.first().focus();
 		},
@@ -638,7 +677,7 @@
 			"format.number": "{label}必须是有效的整数!",
 			"format.number/money": "{label}必须是整数或最多保留两位的小数!",
 			"format.number/double": "{label}必须是有效的整数或小数!",
-			"format.date": "{label}必须是有效的日期!",			
+			"format.date": "{label}必须是有效的日期!",
 			"file": "{label}的格式不正确，必须为{expected}等格式!",
 			"default":"{label}的格式不正确!"
 		},
@@ -683,7 +722,7 @@
 			}
 			return msg;
 		},
-		
+
 		labels: { },
 
 		setLabel: function(name, label, global){
@@ -716,7 +755,7 @@
 		// 解析formatter的format，形如:"formatterName[/expression]"
 		parseFormat: function(format){
 			var pos = format.indexOf("/"), result = [format, ""];
-			if(pos > 0) result[0] = format.substring(0, pos), result[1] = format.substr(pos + 1);			
+			if(pos > 0) result[0] = format.substring(0, pos), result[1] = format.substr(pos + 1);
 			return result;
 		},
 		// 解析范围区间，形如："(1,2)"、"[2,5]"
@@ -799,7 +838,7 @@
 		"imageCode": {
 			length: "[4]"
 		},
-		"required": {},
+		"required": { },
 		"cellphone": true,
 		"email": true,
 		"idcard": {
@@ -811,46 +850,3 @@
 		global.V = V;
 	}
 }(jQuery, window);
-
-// 
-!function($){
-	V.fn.bindAttr = function(options){
-		var opts = $.extend({
-			container: "form", // 元素容器,并对此进行监听
-			eventType: "submit", // 监听事件		
-			attr:"v", // 指定设置规则的属性
-			nameAsValue: true, // 如果 attr指定的属性值为空,是否可使用name属性值作为其属性值
-			cache: true // 是否允许缓存,如果规则不会随时变动,建议开启缓存以提高重复校验的性能			
-		}, options),
-		me = this,
-		$p = $(opts.container),
-		$matches = $p.find("[" + opts.attr +"]"),
-		validate = function(selector, event){
-			var $doms = selector ? $(selector) : opts.cache ? $matches : $p.find("[" + opts.attr +"]"), total = 0, success = 0, rules = { };
-			$doms.each(function(){				
-				var $me = $(this), name = $me.prop("name") || $me.attr("name"), ruleName = $me.attr(opts.attr) || opts.nameAsValue && name;
-				if(!ruleName){
-					throw "inlivad attribute [" + opts.attr + "]:" + $me;
-				}
-				if(rules[name]) return;
-				if(this.checked != null) // 对复选框/单选框进行特殊处理
-					$me = $p.find("[name='" + name + "']");
-				rules[name] = ruleName;
-				total++;
-				if( me.validate($me, ruleName, event) === false){
-					return false;
-				}
-				success++;
-			});
-			var result = total == success;
-			if(me.callback && $.isFunction(me.callback) ){
-				return me.callback.call($doms, result, rules, event) !== false;
-			}
-			return result;
-		};
-		$p.on(eventType, function(e){
-			return validate(null, e);
-		});
-		return { validate: validate }; // 返回包含校验函数的对象,便于手动调用		
-	};	
-}(jQuery);
