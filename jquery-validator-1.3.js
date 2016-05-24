@@ -579,7 +579,14 @@
 
 			if(typeof eventType === "string"){ // 进行事件绑定
 				$doms.bind(eventType, function(e){
-					var isSubmit = e.type == "submit", element = isSubmit ? this : e.target, rule = isSubmit ? rules : rules[element.name];
+					var isSubmit = e.type == "submit", element = isSubmit ? this : e.target, rule = rules, prop;
+					if(!isSubmit){
+						if((prop = element.id) == null || (rule = rules["#" + prop]) == null){ // "#id"、"name"、"$name"
+							if((rule = rules[prop = element.name]) == null ){
+								rule = rules["$" + prop];
+							}
+						}
+					}
 					if( rule ){
 						return me.execute(element, e, rule);
 					}
