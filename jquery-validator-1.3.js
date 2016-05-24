@@ -96,6 +96,12 @@
 		clipRule: function(rule, context){
 			return this.extendRule(true, rule, this.defaultRules);
 		},
+		// 后置处理
+		afterHandler: function(result, context){
+			var handler = context.rule.after;
+			if(handler && $.isFunction(handler)) handler.call(this, result, context);
+			return result;									
+		},		
 		 // 元素值预处理器，必须返回值
 		pre: {
 			// 去除两侧的空白字符
@@ -178,6 +184,7 @@
 				if(!expr) expr = "yyyy-MM-dd";
 				else if(expr == "datetime") expr = "yyyy-MM-dd HH:mm:ss";
 				else if(expr == "time") expr = "HH:mm:ss";
+				context.dateFormat = expr;
 				if(!value || value.length != expr.length) return false;
 				var pattern = cache[context.rule.format], part;
 				// pattern = {yyyy:[begin,end], MM:[begin,end], dd:[begin,end], HH:[begin,end], mm:[begin,end], ss:[begin,end]}
@@ -276,7 +283,7 @@
 			},
 			// 格式化校验器
 			format: function(value, expr, context){
-				var result = V.util.parseFormat( expr ), formatter = this.formatter[ result[0] ];
+				var result = V.util.parseFormat( expr ), formatter = this.formatter[ context.child = result[0] ]; // context.child 子校验器名称
 				if( formatter ){
 					value = formatter.call(this, value, result[1], context);
 					if(value === false){
@@ -505,16 +512,16 @@
 			rule = context.rule = me.clipRule( rule );
 			V.debug && log( "current validate context:", context );
 			if( value instanceof $ ){
-				if(!value.length && !this.strict) return true; // 非严格模式,直接跳过校验
+				if(!value.length && !this.strict) return me.afterHandler(true, context); // 非严格模式,直接跳过校验
 				context.$dom = value;
 				value = me.getValue(value, context);
 			}
 			context.value = value;
 			// 如果设置了条件预过滤器，只有在匹配条件时才执行后续校验
-			if( rule.preMatch ){
-				if(rule.preMatch.call(me, value, context) === false)
-					return true;
-				delete rule.preMatch;
+			if( rule.before ){
+				if(rule.before.call(me, value, context) === false)
+					return me.afterHandler(true, context);
+				delete rule.before;
 			}
 			if( event ){
 				context.event = event;
@@ -533,17 +540,17 @@
 			if( rule.required != null ){
 				context.validator = "required";
 				if( me.validator.required.call(me, value, "", context) === false){
-					return false;
+					return me.afterHandler(false, context);
 				}
-				if( context._stop ) return true;
+				if( context._stop ) return me.afterHandler(false, context);
 				delete rule.required;
 			}
 			// 如果设置了格式验证
 			if( rule.format ){
 				context.validator = "format";
 				value = me.validator.format.call(me, value, rule.format, context);
-				if( value === false ) return false;
-				if( context._stop ) return true;
+				if( value === false ) return me.afterHandler(false, context);
+				if( context._stop ) return me.afterHandler(true, context);
 				delete rule.format;
 			}
 			// 循环执行验证器，非验证器属性就跳过
@@ -552,12 +559,12 @@
 				if( validator ){
 					context.validator = i;
 					if( validator.call(me, value, rule[i], context) === false ){
-						return false;
+						return me.afterHandler(false, context);
 					}
-					if( context._stop ) return true;
+					if( context._stop ) return me.afterHandler(true, context);
 				}
 			}
-			return true;
+			return me.afterHandler(true, context);
 		},
 		// 对多个元素的值一并执行校验，values 可以为数组、普通对象以及jQuery对象，rules必须是对象
 		execute: function($doms, eventType, rules){
@@ -585,12 +592,12 @@
 				var $me = $(this), tagName = this.nodeName;
 				if( tagName == "FORM" || tagName == "form" ){
 					for(var i in rules){
-						if( me.validate(me.$(i, $me), eventType, rules[i]) === false ){
+						if( me.validate(me.$(i, $me), rules[i], eventType) === false ){
 							return (result = false);
 						}
 					}
 				}else{
-					if( me.validate($me, eventType, rules) === false){
+					if( me.validate($me, rules, eventType) === false){
 						return (result = false);
 					}
 				}
@@ -677,7 +684,7 @@
 			"format.number": "{label}必须是有效的整数!",
 			"format.number/money": "{label}必须是整数或最多保留两位的小数!",
 			"format.number/double": "{label}必须是有效的整数或小数!",
-			"format.date": "{label}必须是有效的日期!",
+			"format.date": "{label}必须为\"{dateFormat}\"格式的有效时间!",
 			"file": "{label}的格式不正确，必须为{expected}等格式!",
 			"default":"{label}的格式不正确!"
 		},
@@ -704,7 +711,7 @@
 				if(bundle != null){
 					if(typeof bundle === "object"){
 						msg = bundle[context.validator + "." + context.trigger];
-						msg == null && ( (msg = bundle[context.validator]) == null ) && (msg = bundle[context.trigger]);
+						msg == null && (!context.child || (msg = bundle[context.validator + "." + context.child]) == null) && ( (msg = bundle[context.validator]) == null ) && (msg = bundle[context.trigger]);
 					}
 					if(msg === false){
 						return msg;
@@ -830,6 +837,12 @@
 		"+money": {
 			format: "number/money",
 			range: "(0,)"
+		},
+		"date": {
+			format:"date"
+		},
+		"datetime": {
+			format:"date/datetime"
 		},
 		"phoneCode": {
 			format: "number",

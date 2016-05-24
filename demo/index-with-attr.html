@@ -12,6 +12,7 @@
 			<div><label>用户名</label>：<input id="username" name="username" v type="text" /></div>
 			<div><label>密码</label>：<input id="password" name="password" v type="password" /></div>
 			<div><label>年龄</label>：<input id="age" name="age" v type="text" /></div>
+			<div><label>出生日期</label>：<input id="birthday" name="birthday" v="date" type="text" /></div>
 			<div><label>手机号码</label>：<input id="cellphone" name="cellphone" v type="text" /></div>
 			<div><label>兴趣爱好</label>：<input name="hobby" type="checkbox" v="required" value="0" /> 足球 <input name="hobby" type="checkbox" value="1" />篮球 </div>
 			<input type="submit" value="提交" />
@@ -19,7 +20,7 @@
 		<script type="text/javascript" src="../jquery-1.12.3.js"></script>
 		<script type="text/javascript" src="../jquery-validator-1.3.js"></script>
 		<script type="text/javascript">
-			new V().bindAttr();			
+			new V().bindAttr();
 		</script>
 	</body>
 </html>

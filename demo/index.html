@@ -10,8 +10,7 @@
 	<body>
 		<form action="http://www.365mini.com/">
 			<div><label>用户名</label>：<input id="username" name="username" type="text" /></div>
-			<div><label>密码</label>：<input id="password" name="password" type="password" /></div>
-			<div><label>确认密码</label>：<input id="repassword" name="repassword" type="password" /></div>
+			<div><label>密码</label>：<input id="password" name="password" type="password" /></div>			
 			<div><label>年龄</label>：<input id="age" name="age" type="text" /></div>
 			<div><label>出生日期</label>：<input id="birthday" name="birthday" type="text" /></div>
 			<div><label>手机号码</label>：<input id="cellphone" name="cellphone" type="text" /></div>
@@ -28,20 +27,11 @@
 			};
 
 			var v = new V();
-			$("form").v("submit", {				
+			$("form").v("submit", {
 				"#username": "username",
 				"#password": "password",
-				"#repassword": {
-					equalsTo: "#password"
-				},
 				"#age": "age",
-				"#birthday": {
-					format:"date",
-					compare: "this < now",
-					message: {
-						compare: "{label}必须小于当前时间"
-					}
-				},
+				"#birthday": "date",
 				"#cellphone": "cellphone",
 				"hobby": "required"
 			});

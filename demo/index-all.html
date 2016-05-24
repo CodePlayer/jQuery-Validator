@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>jQuery Validator 演示页面</title>
+		<meta http-equiv="pragma" content="no-cache">
+		<meta http-equiv="cache-control" content="no-cache">
+		<meta http-equiv="expires" content="0">
+	</head>
+	<body>
+		<form action="http://www.365mini.com/">
+			<div><label>用户名</label>：<input id="username" name="username" type="text" /></div>
+			<div><label>密码</label>：<input id="password" name="password" type="password" /></div>
+			<div><label>确认密码</label>：<input id="repassword" name="repassword" type="password" /></div>
+			<div><label>年龄</label>：<input id="age" name="age" type="text" /></div>
+			<div><label>身份证号码</label>：<input id="idcard" name="idcard" type="text" /></div>
+			<div><label>出生日期</label>：<input id="birthday" name="birthday" type="text" readonly /></div>
+			<div><label>性别</label>：<span id="genderDesc">请先输入身份证号码</span> <input id="gender" name="gender" type="hidden" /> </div>
+			<div><label>邮箱</label>：<input id="email" name="email" type="text" /></div>			
+			<div><label>手机号码</label>：<input id="cellphone" name="cellphone" type="text" /></div>			
+			<div><label>兴趣爱好</label>：<input name="hobby" type="checkbox" value="0" /> 足球 <input name="hobby" type="checkbox" value="1" />篮球 </div>
+			<div><label>职业</label>：<select id="job" name="job">
+				<option value="">==请选择==</option>
+				<option value="1">程序猿</option>
+				<option value="2">教师</option>
+				<option value="3">司机</option>
+				<option value="4">其他</option>
+			</select> </div>
+			<div><label>商品售价</label>：<input id="price" name="price" type="text" /></div>
+			<div><label>头像</label>：<input name="avatar" type="file" />
+			<div><label>开始时间</label>：<input id="beginTime" name="beginTime" type="text" /></div>
+			<div><label>结束时间</label>：<input id="endTime" name="endTime" type="text" /></div>
+			<input type="submit" value="提交" />
+		</form>
+		<script type="text/javascript" src="http://libs.baidu.com/jquery/1.11.3/jquery.min.js"></script>
+		<script type="text/javascript" src="layer/layer.js"></script>
+		<script type="text/javascript" src="../jquery-validator-1.3.js"></script>
+		<script type="text/javascript">
+			// 扩展jQuery原型对象，添加tips方法
+			$.fn.tips = function(msg, delay){
+				layer.tips(msg, this, delay || 3000);
+			};
+
+			var v = new V();
+			
+			v.define({
+				"newUsername": {
+					extend: "username",
+					length: "[6,12]"
+					// , remote: "remoteServer/checkUserExists.php" // 由于需要服务器端支持，因此此处先注释掉
+					// newUsername 规则应用在哪个元素上，就会自动带上该元素对应的"name属性值=value值"参数
+				},
+				"beginTime": {
+					format:"date/datetime",
+					propagation: true,
+					compare: "this <= #endTime",
+					message: {
+						compare: "{label}不能大于{#endTime}"
+					}
+				}
+			});
+			
+			$("form").v("submit", {
+				"#username": "newUsername",
+				"#password": "password",
+				"#repassword": {
+					equalsTo: "#password"
+				},
+				"#age": "age",
+				"#birthday": {
+					format:"date",
+					compare: "this < now",
+					message: {
+						compare: "{label}必须小于当前时间"
+					}
+				},
+				"#cellphone": "cellphone",
+				"hobby": "required",
+				"#job": "required"
+			});
+		</script>
+	</body>
+</html>
