@@ -274,7 +274,8 @@
 					}
 				}
 				if( !value ){
-					if( context.rule.required ){
+					if( expr ){
+						if("continue" === expr) return true;
 						this.sendError(basedLength ? "checked":"", value, "required", context);
 						return false;
 					}
@@ -393,13 +394,13 @@
 							}
 						}
 					}
-					return "this[\"" + name +"\"]";
+					return "_hook_[\"" + name +"\"]";
 				});
 				if(!isOK){
 					return false;
 				}
-				V.debug && log( "compare validator pattern:" + expression, "compare validator [this] hook:", hook );
-				result = new Function("return (" + expression + ")").call(hook);
+				V.debug && log( "compare validator pattern:" + expression, "compare validator hook:", hook );
+				result = new Function("_hook_", "return (" + expression + ")").call(null, hook);
 				if(result === false){
 					this.sendError("", value, expr, context);
 					return false;
@@ -539,7 +540,7 @@
 			// 如果设置了非空验证
 			if( rule.required != null ){
 				context.validator = "required";
-				if( me.validator.required.call(me, value, "", context) === false){
+				if( me.validator.required.call(me, value, rule.required, context) === false){
 					return me.afterHandler(false, context);
 				}
 				if( context._stop ) return me.afterHandler(false, context);
@@ -775,7 +776,7 @@
 		// 解析范围区间，形如："(1,2)"、"[2,5]"
 		parseIntervalPattern: function(pattern){
 			if( !cache[pattern] ){
-				cache.__interval || ( cache.__interval = /^([\[\(])(\d+(\.\d+)?)?(,)?(\d+(\.\d+)?)?([\]\)])$/ );
+				cache.__interval || ( cache.__interval = /^([\[\(])(-?\d+(\.\d+)?)?(,)?(-?\d+(\.\d+)?)?([\]\)])$/ );
 				if( cache.__interval.test(pattern) && (RegExp.$2 || RegExp.$4) ){
 					var result = { min: RegExp.$2, max: RegExp.$5 };
 					if( RegExp.$4 == RegExp.$5 ){
