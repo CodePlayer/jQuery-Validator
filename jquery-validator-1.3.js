@@ -375,7 +375,7 @@
 							var selector = $2 == "#" ? "#" + name : "[name='" + name + "']", $dom = $(selector), domValue = me.getValue($dom, context);
 							if(domValue != null){
 								if(s.propagation){ // 表达式中的其他表单字段和当前字段采用相同的校验规则(compare规则除外)
-									var copy = $.extend({}, s);
+									var copy = $.extend({ }, context.origin);
 									delete copy.compare;
 									if( me.validate($dom, copy) === false ){
 										isOK = false;
