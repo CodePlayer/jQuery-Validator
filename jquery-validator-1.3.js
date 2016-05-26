@@ -840,14 +840,14 @@
 		"int": {
 			format: "number"
 		},
-		"+int": {
+		"int+": {
 			format: "number",
 			range: "(0,)"
 		},
 		"money": {
 			format: "number/money"
 		},
-		"+money": {
+		"money+": {
 			format: "number/money",
 			range: "(0,)"
 		},
@@ -870,7 +870,7 @@
 		"idcard": {
 			format: "idcard/18:[18,]"
 		},
-		"file": "jpg|jpeg|gif|png|bmp"
+		"image": "jpg|jpeg|gif|png|bmp"
 	});
 	if(global ||  (global = (typeof window !== "undefined") ? window : this)){
 		global.V = V;
