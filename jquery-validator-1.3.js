@@ -213,17 +213,20 @@
 					}
 				}
 				if(parts.MM) parts.MM--; // 实际月份数值需要减1
-				return context.date = new Date(parts.yyyy, parts.MM || 0, parts.dd || 1, parts.HH || 0, parts.mm || 0, parts.ss || 0);
+				return new Date(parts.yyyy, parts.MM || 0, parts.dd || 1, parts.HH || 0, parts.mm || 0, parts.ss || 0);
 			},
 			// 身份证格式化器：返回日期
 			// "idcard/?:[18,]"
 			idcard: function(value, expr, context){
 				var pattern = cache[context.rule.format];
 				if(!pattern){
-					if(!expr) pattern = ["?"];
-					else pattern = expr.split(":", 2);
-					if(pattern.length == 1 && pattern[0].length > 2){
-						pattern = ["?", pattern[0]];
+					if(!expr)
+						pattern = ["?", null];
+					else {
+						pattern = expr.split(":", 2);
+						if(pattern.length == 1 && pattern[0].length > 2){
+							pattern = ["?", pattern[0]];
+						}
 					}
 					cache[context.rule.format] = pattern;
 				}
@@ -242,7 +245,7 @@
 				var begin = 6, yyyy = value.substring(begin, begin += isNew ? 4 : 2), MM = value.substring(begin, begin += 2), dd = value.substring(begin, begin += 2);
 				if(!isNew) yyyy = "19" + yyyy;
 				MM--;
-				var date = context.actual = new Date(yyyy, MM, dd);
+				var date = new Date(yyyy, MM, dd);
 				if( isNaN(date.getTime()) ){
 					return false;
 				}
@@ -252,9 +255,12 @@
 					var age = now.getFullYear() - date.getFullYear();
 					now.setFullYear(now.getFullYear() - age);
 					if(date.getTime() > now.getTime()) age--; // 不足周岁,减1岁
-					if(this.validator.range.call(this, age, context) === false ){
+					var label = context.label;
+					context.age = age, context.label = "身份证年龄";
+					if(this.validator.range.call(this, age, pattern[1], context) === false ){
 						return false;
 					}
+					context.label = label;
 				}
 				return context.birthday = date;
 			}
@@ -275,7 +281,6 @@
 				}
 				if( !value ){
 					if( expr ){
-						if("continue" === expr) return true;
 						this.sendError(basedLength ? "checked":"", value, "required", context);
 						return false;
 					}
@@ -286,7 +291,7 @@
 			format: function(value, expr, context){
 				var result = V.util.parseFormat( expr ), formatter = this.formatter[ context.child = result[0] ]; // context.child 子校验器名称
 				if( formatter ){
-					value = formatter.call(this, value, result[1], context);
+					value = context.formatResult = formatter.call(this, value, result[1], context);
 					if(value === false){
 						this.sendError(expr, value, result[1], context);
 					}
@@ -444,11 +449,7 @@
 					case "string":
 						opt.url = expr;
 						if(!isFunction && context.$dom){
-							if(context.name == null){
-								context.name = context.$dom.prop("name");
-							}
-							opt.data = { };
-							opt.data[context.name] = value;
+							opt.data = context.$dom.serialize();
 						}
 						break;
 					case "object":
@@ -457,21 +458,25 @@
 					default:
 						throw "Unexpected remote validator value:" + expr;
 				}
-				var result = null;
+				var result = null, success = opt.success; // 用户自定义的success回调
 				opt.success = function(data, textStatus, jqXHR){
 					result = data;
+					success && $.isFunction(success) && success(data, textStatus, jqXHR);
 				};
 				V.debug && log( "remote ajax options:", opt );
 				$.ajax(opt);
-				if( result ){
-					if( result.message ){
-						context.message = result.message;
-						this.sendError("", value, expr, context);
-					}
+				if( context.remoteResult = result ){
 					if( result.callback ){
 						window[result.callback].call(context.$dom, result, value, context);
 					}
-					return result.status == "OK";
+					var success = result.status == "OK";
+					if( result.message ){
+						context.message = result.message;						
+					}
+					if(!success){
+						this.sendError("", value, expr, context);						
+					}
+					return success;
 				}
 				return false;
 			}
@@ -656,7 +661,7 @@
 			context.trigger = trigger || context.validator;
 			context.actual = actual;
 			context.expected = expected;
-			context.label = this.getLabel(context.name, context.$dom, context);
+			context.label = context.label || this.getLabel(context.name, context.$dom, context);
 			var msg = this.getMessage(context);
 			if(msg !== false){
 				var renderError = $.isFunction(context.rule.renderError) ? context.rule.renderError : this.renderError;
