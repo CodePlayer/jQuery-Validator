@@ -3,7 +3,7 @@
  @Version: 1.3.0 beta
  @Author: Ready
  @Date: 2015-02-25
- @Blog: http://www.365mini.com
+ @Documentation: http://www.365mini.com/page/jquery-validator-quickstart.htm
  @Copyright: CodePlayer( Ready )
  @Email: CodePlayer360@gmail.com
  @Licence: https://www.apache.org/licenses/LICENSE-2.0.html
@@ -11,7 +11,7 @@
 !function ($, global) {
 	var console = global && global.console;
 	if(typeof jQuery === "undefined" || $ !== jQuery){
-		console && console.log("jQuery must be initialied before loading the Validator.");
+		console && console.log("jQuery must be initialized before loading the Validator.");
 		return;
 	};
 	var V = function(method){
@@ -262,7 +262,7 @@
 					}
 					context.label = label;
 				}
-				return context.birthday = date;
+				return date;
 			}
 		},
 		// 校验器
@@ -509,15 +509,16 @@
 		},
 		 // 执行单个校验
 		validate: function(value, rule, event){
-			var me = this, context;
+			var me = this, context, is$;
 			if( typeof rule === "string" ){
 				rule = me.getRule(rule);
 				if( !rule ) throw "validate rule not found:" + rule;
 			}
 			context = V.context = { origin: rule };
 			rule = context.rule = me.clipRule( rule );
-			V.debug && log( "current validate context:", context );
-			if( value instanceof $ ){
+			is$ = value instanceof $;
+			V.debug && log( "current validate context [" + (is$ ? value.prop("name") : value) + "]:" , context );
+			if( is$ ){
 				if(!value.length && !this.strict) return me.afterHandler(true, context); // 非严格模式,直接跳过校验
 				context.$dom = value;
 				value = me.getValue(value, context);
@@ -544,7 +545,7 @@
 			if(value == null) context.value = value = ""; // 确保校验器接收到的不会为null或undefined
 			// 如果设置了非空验证
 			if( rule.required != null ){
-				context.validator = "required";
+				context.validator = "required", context.expression = rule.required;
 				if( me.validator.required.call(me, value, rule.required, context) === false){
 					return me.afterHandler(false, context);
 				}
@@ -553,7 +554,7 @@
 			}
 			// 如果设置了格式验证
 			if( rule.format ){
-				context.validator = "format";
+				context.validator = "format", context.expression = rule.format;
 				value = me.validator.format.call(me, value, rule.format, context);
 				if( value === false ) return me.afterHandler(false, context);
 				if( context._stop ) return me.afterHandler(true, context);
@@ -563,7 +564,7 @@
 			for(var i in rule){
 				var validator = me.validator[i];
 				if( validator ){
-					context.validator = i;
+					context.validator = i, context.expression = rules[i];
 					if( validator.call(me, value, rule[i], context) === false ){
 						return me.afterHandler(false, context);
 					}
@@ -828,7 +829,7 @@
 		"username": {
 			pre: "trimAll,lower,flush",
 			text: /^[a-z][a-z0-9_]{5,15}$/i,
-			message: "{label}必须是英文、数字和下划线组成的6~16位字符，并且必须以字母开头!"
+			message: "{label}必须是英文字母、数字和下划线组成的6~16位字符，并且必须以字母开头!"
 		},
 		"password": {
 			length: "[6,16]"
