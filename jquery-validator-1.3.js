@@ -505,7 +505,7 @@
 		},
 		// 获取指定名称对应的校验规则
 		getRule: function(name){
-			return this.rules[name] || fn.rules[name];
+			return this.rules && this.rules[name] || fn.rules[name];
 		},
 		 // 执行单个校验
 		validate: function(value, rule, event){
@@ -564,7 +564,7 @@
 			for(var i in rule){
 				var validator = me.validator[i];
 				if( validator ){
-					context.validator = i, context.expression = rules[i];
+					context.validator = i, context.expression = rule[i];
 					if( validator.call(me, value, rule[i], context) === false ){
 						return me.afterHandler(false, context);
 					}
@@ -869,6 +869,7 @@
 		"cellphone": true,
 		"email": true,
 		"idcard": {
+			pre: "upper,flush",
 			format: "idcard/18:[18,]"
 		},
 		"image": "jpg|jpeg|gif|png|bmp"
