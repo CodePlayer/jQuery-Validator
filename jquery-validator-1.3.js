@@ -280,7 +280,7 @@
 					}
 				}
 				if( !value ){
-					if( expr ){
+					if( expr && (!$.isFunction(expr) || (expr = expr.call(this, value, context)))){
 						this.sendError(basedLength ? "checked":"", value, "required", context);
 						return false;
 					}
@@ -549,7 +549,7 @@
 				if( me.validator.required.call(me, value, rule.required, context) === false){
 					return me.afterHandler(false, context);
 				}
-				if( context._stop ) return me.afterHandler(false, context);
+				if( context._stop ) return me.afterHandler(true, context);
 				delete rule.required;
 			}
 			// 如果设置了格式验证
