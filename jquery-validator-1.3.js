@@ -698,7 +698,7 @@
 			"format.number": "{label}必须是有效的整数!",
 			"format.number/money": "{label}必须是整数或最多保留两位的小数!",
 			"format.number/double": "{label}必须是有效的整数或小数!",
-			"format.date": "{label}必须为\"{dateFormat}\"格式的有效时间!",
+			"format.date": '{label}必须为"{dateFormat}"格式的有效时间!',
 			"file": "{label}的格式不正确，必须为{expected}等格式!",
 			"default":"{label}的格式不正确!"
 		},
