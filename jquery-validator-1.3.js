@@ -509,7 +509,7 @@
 		},
 		 // 执行单个校验
 		validate: function(value, rule, event){
-			var me = this, context, is$;
+			var me = this, context, is$, done;
 			if( typeof rule === "string" ){
 				rule = me.getRule(rule);
 				if( !rule ) throw "validate rule not found:" + rule;
@@ -523,12 +523,12 @@
 				context.$dom = value;
 				value = me.getValue(value, context);
 			}
-			context.value = value;
+			context.value = value, done = { };
 			// 如果设置了条件预过滤器，只有在匹配条件时才执行后续校验
 			if( rule.before ){
 				if(rule.before.call(me, value, context) === false)
 					return me.afterHandler(true, context);
-				delete rule.before;
+				done.before = true;
 			}
 			if( event ){
 				context.event = event;
@@ -540,7 +540,7 @@
 					value = me.pre[preNames[i]].call(me, value, context);
 				}
 				context.value = value;
-				delete rule.pre;
+				done.pre = true;
 			}
 			if(value == null) context.value = value = ""; // 确保校验器接收到的不会为null或undefined
 			// 如果设置了非空验证
@@ -550,7 +550,7 @@
 					return me.afterHandler(false, context);
 				}
 				if( context._stop ) return me.afterHandler(true, context);
-				delete rule.required;
+				done.required = true;
 			}
 			// 如果设置了格式验证
 			if( rule.format ){
@@ -558,12 +558,12 @@
 				value = me.validator.format.call(me, value, rule.format, context);
 				if( value === false ) return me.afterHandler(false, context);
 				if( context._stop ) return me.afterHandler(true, context);
-				delete rule.format;
+				done.format = true;
 			}
 			// 循环执行验证器，非验证器属性就跳过
 			for(var i in rule){
 				var validator = me.validator[i];
-				if( validator ){
+				if( validator && !done[i] && (done[i] = true)){
 					context.validator = i, context.expression = rule[i];
 					if( validator.call(me, value, rule[i], context) === false ){
 						return me.afterHandler(false, context);
