@@ -511,8 +511,9 @@
 		validate: function(value, rule, event){
 			var me = this, context, is$, done;
 			if( typeof rule === "string" ){
-				rule = me.getRule(rule);
-				if( !rule ) throw "validate rule not found:" + rule;
+				context = me.getRule(rule);
+				if( !context ) throw "validate rule not found:" + rule;
+				rule = context;
 			}
 			context = V.context = { origin: rule };
 			rule = context.rule = me.clipRule( rule );
