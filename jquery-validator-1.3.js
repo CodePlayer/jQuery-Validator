@@ -1,6 +1,6 @@
 /**************************************
  @Name: jQuery-Validator 基于jQuery的表单验证框架
- @Version: 1.3.0 beta
+ @Version: 1.3.1 milestone
  @Author: Ready
  @Date: 2015-02-25
  @Documentation: http://www.365mini.com/page/jquery-validator-quickstart.htm
@@ -37,7 +37,7 @@
 	},
 	fn = V.fn = V.prototype = {
 		// 版本号
-		version: "1.3",
+		version: "1.3.1",
 
 		constructor: V,
 		
