@@ -40,7 +40,7 @@
 		version: "1.3.2",
 
 		constructor: V,
-		
+
 		// 获取元素的值
 		getValue: function($dom, context){
 			return $dom.val();
@@ -100,8 +100,8 @@
 		afterHandler: function(result, context){
 			var handler = context.rule.after;
 			if(handler && $.isFunction(handler)) handler.call(this, result, context);
-			return result;									
-		},		
+			return result;
+		},
 		 // 元素值预处理器，必须返回值
 		pre: {
 			// 去除两侧的空白字符
@@ -366,7 +366,7 @@
 			// 比较校验器
 			compare: function(value, expr, context){
 				var hook = {}, s = context.rule, me = this, result, isOK = true;
-				var expression = expr.replace(cache.__compare || ( cache.__compare = /\b(this|now)\b|([$#])([^\s=+*\/%&|-]+)/g ), function($0, $1, $2, $3){
+				var expression = expr.replace(cache.__compare || ( cache.__compare = /\b(this|now)\b|([$#])([^\s=+*\/%&|\-]+)/g ), function($0, $1, $2, $3){
 					var name = $1 || $3;
 					if(isOK){
 						if(name == "this"){
@@ -422,7 +422,7 @@
 			},
 			// 邮箱格式校验器
 			email: function(value, expr, context){
-				cache.__email || ( cache.__email = /^[\w._-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$/ );
+				cache.__email || ( cache.__email = /^[\w._\-]+@[a-zA-Z0-9\-]+(\.[a-zA-Z0-9\-]+)+$/ );
 				V.debug && log( "email regexp:", cache.__email );
 				if( !cache.__email.test(value) ){
 					this.sendError("", value, cache.__email, context);
@@ -765,7 +765,7 @@
 			if(name != null){
 				var label = this.labels[name] || fn.labels[name];
 				if(label == null && $dom && $dom.length ){
-					label = $dom.attr("label") || $dom.prev("label").text();
+					label = $dom.attr("label") || $dom.first().prev("label").text();
 					if(label) return label;
 				}
 			}
