@@ -37,7 +37,7 @@
 	},
 	fn = V.fn = V.prototype = {
 		// 版本号
-		version: "1.3.2",
+		version: "1.3.3",
 
 		constructor: V,
 
@@ -766,8 +766,8 @@
 				var label = this.labels[name] || fn.labels[name];
 				if(label == null && $dom && $dom.length ){
 					label = $dom.attr("label") || $dom.first().prev("label").text();
-					if(label) return label;
 				}
+				if(label) return label;
 			}
 			return "";
 		}
