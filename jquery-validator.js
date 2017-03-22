@@ -37,7 +37,7 @@
 	},
 	fn = V.fn = V.prototype = {
 		// 版本号
-		version: "1.3.3",
+		version: "1.3.4",
 
 		constructor: V,
 
@@ -494,7 +494,7 @@
 			}
 			if(typeof rule != "object"){
 				var obj = {};
-				obj[rule] = rule;
+				obj[name] = rule;
 				rule = obj;
 			}
 			rule = this.extendRule(false, rule);
