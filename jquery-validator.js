@@ -1,6 +1,6 @@
 /**************************************
  @Name: jQuery-Validator 基于jQuery的表单验证框架
- @Version: 1.3.4
+ @Version: 1.3.5
  @Author: Ready
  @Date: 2017-03-22
  @Documentation: http://www.365mini.com/page/jquery-validator-quickstart.htm
@@ -37,7 +37,7 @@
 	},
 	fn = V.fn = V.prototype = {
 		// 版本号
-		version: "1.3.4",
+		version: "1.3.5",
 
 		constructor: V,
 
@@ -123,7 +123,8 @@
 			},
 			// 刷新：将预处理后的值放回元素的value中
 			flush: function(value, context){
-				context.$dom && context.$dom.val(value);
+				var $dom = context.$dom;
+				$dom && ($dom.length == 1) && $dom.val(value);
 				return value;
 			}
 		},
