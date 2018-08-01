@@ -37,7 +37,7 @@
 	},
 	fn = V.fn = V.prototype = {
 		// 版本号
-		version: "1.3.5",
+		version: "1.3.6",
 
 		constructor: V,
 
@@ -48,6 +48,9 @@
 
 		// 严格模式:如果为false,则指定选择器没有对应元素时,直接忽略该元素的校验
 		strict: true,
+
+		// 用于选取label的attribute
+		labelAttr: "label",
 
 		// 将指定值包裹为jQuery对象
 		$: function( input, $context ){
@@ -762,11 +765,11 @@
 		},
 
 		getLabel: function(name, $dom, context){
-			if(!name) name = $dom.prop("name");
+			if(!name && $dom) name = $dom.prop("name");
 			if(name != null){
 				var label = this.labels[name] || fn.labels[name];
 				if(label == null && $dom && $dom.length ){
-					label = $dom.attr("label") || $dom.first().prev("label").text();
+					label = $dom.attr(this.labelAttr || "label") || $dom.first().prev("label").text();
 				}
 				if(label) return label;
 			}
