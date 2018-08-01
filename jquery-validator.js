@@ -1,8 +1,8 @@
 /**************************************
- @Name: jQuery-Validator 基于jQuery的表单验证框架
- @Version: 1.3.5
+ @Name: jQuery-Validator 基于jQuery的前端验证框架
+ @Version: 1.3.6
  @Author: Ready
- @Date: 2017-03-22
+ @Date: 2018-08-01
  @Documentation: http://www.365mini.com/page/jquery-validator-quickstart.htm
  @Copyright: CodePlayer( Ready )
  @Email: CodePlayer360@gmail.com
