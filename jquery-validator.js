@@ -1,10 +1,9 @@
 /**************************************
  @Name: jQuery-Validator 基于jQuery的前端验证框架
- @Version: 1.3.6
+ @Version: 1.3.7
  @Author: Ready
- @Date: 2018-08-01
- @Documentation: http://www.365mini.com/page/jquery-validator-quickstart.htm
- @Copyright: CodePlayer( Ready )
+ @Date: 2020-08-24
+ @Documentation: https://codeplayer.vip/p/j7sud 
  @Email: CodePlayer360@gmail.com
  @Licence: https://www.apache.org/licenses/LICENSE-2.0.html
 */
@@ -101,9 +100,18 @@
 		},
 		// 后置处理
 		afterHandler: function(result, context){
-			var handler = context.rule.after;
+			var handler = context.rule && context.rule.after;
 			if(handler && $.isFunction(handler)) handler.call(this, result, context);
 			return result;
+		},
+		/**
+		 * 指示当前元素是否必须非空（只有对表单元素进行校验时，才会被框架调用）。只有返回 true 或 false 时，才会设置允许对应的表单元素是否 非空 或 允许为空，其他任何返回值均不影响原规则校验
+		 */
+		isRequired: function(val, context){
+			var optional = context.$dom.attr('optional');
+			if( optional == 'true' || optional == 'false' ){
+				return optional == 'true';
+			}
 		},
 		 // 元素值预处理器，必须返回值
 		pre: {
@@ -513,20 +521,31 @@
 		},
 		 // 执行单个校验
 		validate: function(value, rule, event){
-			var me = this, context, is$, done;
+			var me = this, context, is$ = value instanceof $, ruleName, $dom = is$ ? value : null, done, required;
 			if( typeof rule === "string" ){
-				context = me.getRule(rule);
-				if( !context ) throw "validate rule not found:" + rule;
-				rule = context;
+				ruleName = rule;
+				if(ruleName.slice(-1) == '?'){
+					ruleName = ruleName.slice(0, -1);
+					required = false;
+				}
+				rule = me.getRule(ruleName);
 			}
-			context = V.context = { origin: rule };
-			rule = context.rule = me.clipRule( rule );
-			is$ = value instanceof $;
-			V.debug && log( "current validate context [" + (is$ ? value.prop("name") : value) + "]:" , context );
+			context = V.context = { ruleName: ruleName, origin: rule, $dom: $dom, rule: rule };
+			V.debug && log( "current validate context [" + (is$ ? $dom.selector : value) + "]:" , context );
 			if( is$ ){
-				if(!value.length && !this.strict) return me.afterHandler(true, context); // 非严格模式,直接跳过校验
-				context.$dom = value;
-				value = me.getValue(value, context);
+				if(!$dom.length && !me.strict) return me.afterHandler(true, context); // 非严格模式,直接跳过校验
+				value = me.getValue($dom, context);
+				if( required == null ){
+					var r = me.isRequired(value, context);
+					if( typeof r === 'boolean' ){
+						required = r;
+					}
+				}				
+			}
+			if( !rule ) throw "validate rule not found:" + ruleName;
+			rule = context.rule = me.clipRule( rule );
+			if( required != null ){
+				rule.required = required;
 			}
 			context.value = value, done = { };
 			// 如果设置了条件预过滤器，只有在匹配条件时才执行后续校验
@@ -676,7 +695,7 @@
 		},
 		 // 渲染错误
 		renderError: function(message, $target, context){
-			if($target && $.isFunction($target.tips)){
+			if($target && $target.length && $.isFunction($target.tips)){
 				$target.tips(message);
 			}else {
 				alert(message);
