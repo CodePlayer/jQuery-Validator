@@ -3,7 +3,7 @@
  @Version: 1.3.7
  @Author: Ready
  @Date: 2020-08-24
- @Documentation: https://codeplayer.vip/p/j7sud 
+ @Documentation: https://codeplayer.vip/p/j7sud
  @Email: CodePlayer360@gmail.com
  @Licence: https://www.apache.org/licenses/LICENSE-2.0.html
 */
@@ -12,7 +12,7 @@
 	if(typeof jQuery === "undefined" || $ !== jQuery){
 		console && console.log("jQuery must be initialized before loading the Validator.");
 		return;
-	};
+	}
 	var V = function(method){
 		if(!(this instanceof V)){
 			return new V(method);
@@ -483,10 +483,10 @@
 					}
 					var success = result.status == "OK";
 					if( result.message ){
-						context.message = result.message;						
+						context.message = result.message;
 					}
 					if(!success){
-						this.sendError("", value, expr, context);						
+						this.sendError("", value, expr, context);
 					}
 					return success;
 				}
@@ -540,7 +540,7 @@
 					if( typeof r === 'boolean' ){
 						required = r;
 					}
-				}				
+				}
 			}
 			if( !rule ) throw "validate rule not found:" + ruleName;
 			rule = context.rule = me.clipRule( rule );
@@ -643,8 +643,8 @@
 			if( me.callback && $.isFunction(me.callback) ){
 				return me.callback.call($doms, result, rules, eventType) !== false;
 			}
-			return result;		
-		},		
+			return result;
+		},
 
 		bindAttr: function(options){
 			var opts = $.extend({
@@ -680,7 +680,7 @@
 			});
 			return { validate: validate }; // 返回包含校验函数的对象,便于手动调用
 		},
-		
+
 		// 发送错误信息
 		sendError: function(trigger, actual, expected, context){
 			context.trigger = trigger || context.validator;
