@@ -1,6 +1,6 @@
 # jQuery Validator
 
-当前版本： **1.3.7**
+当前版本： **1.3.8**
 
 jQuery Validator 是一个简单易用、功能强大的基于jQuery的表单验证框架。其设计目标如下：
 * 【简单易用，轻松上手】：一般情况下，无需进行任何配置，内置的校验器和校验规则即可满足绝大多数中文环境下的常规表单验证需求，开箱即可使用！
@@ -11,6 +11,6 @@ jQuery Validator 是一个简单易用、功能强大的基于jQuery的表单验
 ## jQuery Validator 依赖
 jQuery 1.6+（建议采用 1.x 或 2.x 的最新版本）
 ## jQuery Validator 初体验 & 快速入门
-演示示例及快速入门教程，请参见网址：[http://www.365mini.com/page/jquery-validator-quickstart.htm](http://www.365mini.com/page/jquery-validator-quickstart.htm "jQuery Validator 快速入门")。
+演示示例及快速入门教程，请参见网址：[https://codeplayer.vip/p/j7sud](https://codeplayer.vip/p/j7sud "jQuery Validator 快速入门")。
 ## jQuery Validator 文档
-请参见网址：[http://www.365mini.com/page/tag/jquery-validator](http://www.365mini.com/page/tag/jquery-validator "jQuery Validator 文档")。
+请参见网址：[https://codeplayer.vip/p/j7sus](https://codeplayer.vip/p/j7sus "jQuery Validator 文档")。

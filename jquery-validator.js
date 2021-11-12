@@ -1,8 +1,8 @@
 /**************************************
  @Name: jQuery-Validator 基于jQuery的前端验证框架
- @Version: 1.3.7
+ @Version: 1.3.8
  @Author: Ready
- @Date: 2020-08-24
+ @Date: 2021-11-12
  @Documentation: https://codeplayer.vip/p/j7sud
  @Email: CodePlayer360@gmail.com
  @Licence: https://www.apache.org/licenses/LICENSE-2.0.html
@@ -36,7 +36,7 @@
 	},
 	fn = V.fn = V.prototype = {
 		// 版本号
-		version: "1.3.6",
+		version: "1.3.8",
 
 		constructor: V,
 
@@ -694,11 +694,12 @@
 			}
 		},
 		 // 渲染错误
-		renderError: function(message, $target, context){
-			if($target && $target.length && $.isFunction($target.tips)){
-				$target.tips(message);
-			}else {
-				alert(message);
+		renderError: function(msg, $target, context){
+			if($target && $target.length && $.isFunction($target.tips) && $target.is(':visible')){
+				// 只有可见的元素才适合使用 tips 方式渲染错误
+				$target.tips(msg);
+			} else {
+				$.isFunction($.alert) ? $.alert(msg) : alert(msg);
 			}
 			var e = context.event;
 			if( !e || e.type != "focusout" && e.type != "blur")
@@ -786,7 +787,7 @@
 		getLabel: function(name, $dom, context){
 			if(!name && $dom) name = $dom.prop("name");
 			if(name != null){
-				var label = this.labels[name] || fn.labels[name];
+				var label = context.label || this.labels[name] || fn.labels[name];
 				if(label == null && $dom && $dom.length ){
 					label = $dom.attr(this.labelAttr || "label") || $dom.first().prev("label").text();
 				}
