@@ -1,6 +1,6 @@
 /**************************************
  @Name: jQuery-Validator 基于jQuery的前端验证框架
- @Version: 1.3.9
+ @Version: 1.4.0
  @Author: Ready
  @Date: 2022-01-12
  @Documentation: https://codeplayer.vip/p/j7sud
@@ -10,7 +10,7 @@
 !function ($, global) {
 	var console = global && global.console;
 	if(typeof jQuery === "undefined" || $ !== jQuery){
-		console && console.log("jQuery must be initialized before loading the Validator.");
+		console && console.warn("jQuery must be initialized before loading the Validator.");
 		return;
 	}
 	var V = function(method){
@@ -36,7 +36,7 @@
 	},
 	fn = V.fn = V.prototype = {
 		// 版本号
-		version: "1.3.9",
+		version: "1.4.0",
 
 		constructor: V,
 
@@ -45,8 +45,19 @@
 			return $dom.val();
 		},
 
-		// 严格模式:如果为false,则指定选择器没有对应元素时,直接忽略该元素的校验
-		strict: true,
+		// 校验跳过模式（支持位运算或运算）：0=不忽略任何元素；1=仅忽略不存在的元素；2=仅忽略不可见的元素；4=仅忽略只读的元素
+		skip: 0,
+
+		filter: function($dom, context){
+			var s = this.skip;
+			if ( f > 0 && (
+					(s & 1) === 1 && !$dom.length
+					|| (s & 2) === 2 && !$dom.is(':visible')
+					|| (s & 4) === 4 && $dom.is('[readonly]'))
+			){
+				return false;
+			}
+		},
 
 		// 用于选取label的attribute
 		labelAttr: "label",
@@ -163,26 +174,28 @@
 							expr = sign + expr;
 					}
 					// 位数表达式
-					var subExpr = expr.substr(1);
+					var subExpr = expr.substr(1), digits = "+", fraction = "";
 					switch(subExpr){
 						case "int":
 						case "integer":
-							regex = new RegExp("^" + signExpr + "\\d+$");
 							break;
 						case "money":
-							regex = new RegExp("^" + signExpr + "\\d+(\\.\\d{1,2})?$");
+							fraction = "(\\.\\d{1,2})?";
 							break;
 						case "float":
 						case "double":
-							regex = new RegExp("^" + signExpr + "\\d+(\\.\\d+)?$");
+							fraction = "(\\.\\d+)?";
 							break;
 						default:
 							var subArray = subExpr.split(".", 2);
-							regex = "^" + signExpr + "\\d" + subArray[0];
-							if(subArray[1]) regex += "\\.\\d" + subArray[1];
-							regex = new RegExp(regex + "$");
+							digits = subArray[0];
+							if( subArray[1] ){
+								fraction = subArray[1].startsWith("{0,")
+										? "(\\.\\d" + subArray[1].replace(/^\{0,/, "{1,") + ")?"
+										: "\\.\\d" + subArray[1];
+							}
 					}
-					cache[context.rule.format] = regex;
+					cache[context.rule.format] = regex = new RegExp("^" + signExpr + "\\d" + digits + fraction + "$");
 				}
 				V.debug && log( "number formatter [" + expr + "] regexp:", regex );
 				if(regex.test(value)){
@@ -533,7 +546,7 @@
 			context = V.context = { ruleName: ruleName, origin: rule, $dom: $dom, rule: rule };
 			V.debug && log( "current validate context [" + (is$ ? $dom.selector : value) + "]:" , context );
 			if( is$ ){
-				if(!$dom.length && !me.strict) return me.afterHandler(true, context); // 非严格模式,直接跳过校验
+				if( me.filter($dom, context) === false ) return me.afterHandler(true, context); // 非严格模式,直接跳过校验
 				value = me.getValue($dom, context);
 				if( required == null ){
 					var r = me.isRequired(value, context);
