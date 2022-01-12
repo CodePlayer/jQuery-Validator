@@ -50,7 +50,7 @@
 
 		filter: function($dom, context){
 			var s = this.skip;
-			if ( f > 0 && (
+			if ( s > 0 && (
 					(s & 1) === 1 && !$dom.length
 					|| (s & 2) === 2 && !$dom.is(':visible')
 					|| (s & 4) === 4 && $dom.is('[readonly]'))
