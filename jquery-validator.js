@@ -1,8 +1,8 @@
 /**************************************
  @Name: jQuery-Validator 基于jQuery的前端验证框架
- @Version: 1.3.8
+ @Version: 1.3.9
  @Author: Ready
- @Date: 2021-11-12
+ @Date: 2022-01-12
  @Documentation: https://codeplayer.vip/p/j7sud
  @Email: CodePlayer360@gmail.com
  @Licence: https://www.apache.org/licenses/LICENSE-2.0.html
@@ -36,7 +36,7 @@
 	},
 	fn = V.fn = V.prototype = {
 		// 版本号
-		version: "1.3.8",
+		version: "1.3.9",
 
 		constructor: V,
 
@@ -789,9 +789,9 @@
 			if(name != null){
 				var label = context.label || this.labels[name] || fn.labels[name];
 				if(label == null && $dom && $dom.length ){
-					label = $dom.attr(this.labelAttr || "label") || $dom.first().prev("label").text();
+					label = $dom.attr(this.labelAttr || "label") || this.findLabel && this.findLabel(name, $dom, context) || $dom.first().prev("label").text();
 				}
-				if(label) return label;
+				if( label ) return label;
 			}
 			return "";
 		}
